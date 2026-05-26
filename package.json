@@ -1,0 +1,23 @@
+{
+  "name": "interviewiq",
+  "version": "1.0.0",
+  "description": "Creating a project",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm install --prefix frontend && npm install --prefix backend"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrsumitr/InterviewIQ.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mrsumitr/InterviewIQ/issues"
+  },
+  "homepage": "https://github.com/mrsumitr/InterviewIQ#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
