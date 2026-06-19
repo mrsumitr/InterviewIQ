@@ -29,4 +29,5 @@ const userSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+// to track users year of registration, we can add a virtual field
 export const User = mongoose.model('User', userSchema);
