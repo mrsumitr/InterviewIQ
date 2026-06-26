@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import VideoCall from '@/components/VideoCall';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
+import api from '@/lib/api';
 
-export default function RoomPage() {
+function Room() {
   const { roomId } = useParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -31,6 +33,8 @@ export default function RoomPage() {
 
         setToken(data.token);
         setUrl(data.url);
+
+        await api.patch(`/interviews/${roomId}/start`);
       } catch {
         setError('Failed to connect to server');
       }
@@ -39,6 +43,18 @@ export default function RoomPage() {
     fetchToken();
   }, [roomId, user]);
 
+  const handleDisconnect = () => {
+    router.push('/');
+  };
+
+  const handleEndInterview = async () => {
+    try {
+      await api.patch(`/interviews/${roomId}/end`);
+    } finally {
+      router.push('/');
+    }
+  };
+
   if (error) return <div>{error}</div>;
   if (!token || !url) return <div>Connecting...</div>;
 
@@ -46,7 +62,17 @@ export default function RoomPage() {
     <VideoCall
       token={token}
       url={url}
-      onDisconnect={() => router.push('/')}
+      onDisconnect={handleDisconnect}
+      isInterviewer={user?.role === 'interviewer'}
+      onEndInterview={handleEndInterview}
     />
+  );
+}
+
+export default function RoomPage() {
+  return (
+    <ProtectedRoute>
+      <Room />
+    </ProtectedRoute>
   );
 }

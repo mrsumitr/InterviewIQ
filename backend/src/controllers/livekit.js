@@ -1,5 +1,6 @@
 import { AccessToken } from 'livekit-server-sdk';
 import { ENV } from '../lib/env.js';
+import { Interview } from '../models/Interview.js';
 
 export const generateToken = async (req, res) => {
   try {
@@ -8,6 +9,16 @@ export const generateToken = async (req, res) => {
 
     if (!roomName || !role)
       return res.status(400).json({ msg: 'roomName and role are required' });
+
+    const interview = await Interview.findOne({ roomId: roomName });
+    if (!interview) return res.status(404).json({ msg: 'Interview room not found' });
+
+    const isParticipant =
+      interview.interviewers.some((id) => id.toString() === participantName) ||
+      interview.interviewee.toString() === participantName;
+
+    if (!isParticipant)
+      return res.status(403).json({ msg: 'You are not part of this interview' });
 
     const token = new AccessToken(ENV.LIVEKIT_API_KEY, ENV.LIVEKIT_API_SECRET, {
       identity: participantName,
