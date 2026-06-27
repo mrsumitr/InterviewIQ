@@ -21,6 +21,15 @@ const interviewSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  problem: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Problem',
+    default: null,
+  },
+  code: {
+    type: String,
+    default: '',
+  },
   scheduledAt: {
     type: Date,
     required: true,

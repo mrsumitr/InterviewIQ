@@ -1,6 +1,7 @@
 import { AccessToken } from 'livekit-server-sdk';
 import { ENV } from '../lib/env.js';
 import { Interview } from '../models/Interview.js';
+import { User } from '../models/User.js';
 
 export const generateToken = async (req, res) => {
   try {
@@ -20,8 +21,11 @@ export const generateToken = async (req, res) => {
     if (!isParticipant)
       return res.status(403).json({ msg: 'You are not part of this interview' });
 
+    const user = await User.findById(participantName).select('name');
+
     const token = new AccessToken(ENV.LIVEKIT_API_KEY, ENV.LIVEKIT_API_SECRET, {
       identity: participantName,
+      name: user?.name || 'Participant',
     });
 
     token.addGrant({

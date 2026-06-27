@@ -108,6 +108,20 @@ export const logout = async (req, res) => {
   }
 };
 
+export const lookupUserByEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ msg: 'email is required' });
+
+    const user = await User.findOne({ email }).select('name email role');
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    res.status(200).json({ user });
+  } catch (error) {
+    res.status(500).json({ msg: 'Server error', error: error.message });
+  }
+};
+
 export const refreshToken = async (req, res) => {
   try {
     const token = req.cookies.refreshToken;

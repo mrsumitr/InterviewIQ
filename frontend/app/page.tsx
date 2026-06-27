@@ -1,65 +1,165 @@
-import Image from "next/image";
+import Link from 'next/link';
+import {
+  Zap,
+  Check,
+  Play,
+  ArrowRight,
+  Video,
+  Code2,
+  Users,
+} from 'lucide-react';
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex-1 bg-zinc-950 text-zinc-50">
+      <nav className="border-b border-zinc-800">
+        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 sm:px-10 py-5">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-md bg-emerald-400 flex items-center justify-center">
+              <Zap className="h-4 w-4 text-zinc-950" />
+            </div>
+            <span className="font-semibold tracking-tight">InterviewIQ</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="text-sm text-zinc-400 hover:text-zinc-50 transition-colors hidden sm:inline"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-1 rounded-md bg-emerald-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-emerald-300 transition-colors"
+            >
+              Get Started <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      <section className="px-6 sm:px-10 py-16 sm:py-24 grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+        <div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-400">
+            <Zap className="h-3 w-3" /> Real-time Interviews
+          </span>
+
+          <h1 className="mt-5 text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
+            Interview Together,
+            <br />
+            Hire with Confidence
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="mt-5 text-zinc-400 text-base sm:text-lg max-w-md">
+            The ultimate platform for live video interviews. Connect face-to-face,
+            track candidates, and make better hiring decisions.
           </p>
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            {['Live Video Call', 'Interview Scheduling', 'Multi-Interviewer'].map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300"
+              >
+                <Check className="h-3 w-3 text-emerald-400" /> {tag}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-400 px-5 py-3 text-sm font-medium text-zinc-950 hover:bg-emerald-300 transition-colors"
+            >
+              Start Interviewing <ArrowRight className="h-4 w-4" />
+            </Link>
+            <button className="inline-flex items-center gap-2 rounded-md border border-zinc-700 px-5 py-3 text-sm font-medium text-zinc-200 hover:bg-zinc-900 transition-colors">
+              <Play className="h-4 w-4" /> Watch Demo
+            </button>
+          </div>
+
+          <div className="mt-10 flex gap-8">
+            <div>
+              <p className="text-2xl font-bold text-emerald-400">25+</p>
+              <p className="text-xs text-zinc-500">Concurrent Rooms</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-emerald-400">2</p>
+              <p className="text-xs text-zinc-500">Min Setup Time</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-emerald-400">99.9%</p>
+              <p className="text-xs text-zinc-500">Uptime</p>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="relative">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-2xl">
+            <div className="flex items-center gap-1.5 pb-3">
+              <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+              <span className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            </div>
+            <div className="aspect-video rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-emerald-400/20 flex items-center justify-center">
+                <Video className="h-7 w-7 text-emerald-400" />
+              </div>
+              <div className="h-16 w-16 rounded-full bg-zinc-800 flex items-center justify-center">
+                <Users className="h-7 w-7 text-zinc-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute -top-6 -right-4 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs font-medium shadow-lg flex items-center gap-2">
+            <Code2 className="h-4 w-4 text-emerald-400" /> Coding Round
+          </div>
+          <div className="absolute -bottom-6 -left-4 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs font-medium shadow-lg flex items-center gap-2">
+            <Video className="h-4 w-4 text-emerald-400" /> HD Video
+          </div>
         </div>
-      </main>
+      </section>
+
+      <section className="px-6 sm:px-10 py-16 border-t border-zinc-800">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-3xl font-bold tracking-tight">
+            Everything You Need to <span className="text-emerald-400">Succeed</span>
+          </h2>
+          <p className="mt-3 text-zinc-400 max-w-xl mx-auto">
+            Built for interviewers and candidates who need a seamless, reliable interview experience.
+          </p>
+
+          <div className="mt-12 grid sm:grid-cols-3 gap-6 text-left">
+            {[
+              {
+                icon: Video,
+                title: 'HD Video Calls',
+                desc: 'Crystal clear video and audio for seamless interviews, powered by LiveKit.',
+              },
+              {
+                icon: Code2,
+                title: 'Role-based Access',
+                desc: 'Interviewers and interviewees get permissions tailored to their role.',
+              },
+              {
+                icon: Users,
+                title: 'Panel Interviews',
+                desc: 'Add multiple interviewers to a single session for collaborative hiring.',
+              },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div
+                key={title}
+                className="rounded-xl border border-zinc-800 bg-zinc-900 p-6"
+              >
+                <div className="h-10 w-10 rounded-lg bg-emerald-400/10 flex items-center justify-center mb-4">
+                  <Icon className="h-5 w-5 text-emerald-400" />
+                </div>
+                <h3 className="font-semibold">{title}</h3>
+                <p className="mt-1.5 text-sm text-zinc-400">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
