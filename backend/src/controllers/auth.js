@@ -38,7 +38,7 @@ export const register = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: ENV.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: ENV.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -76,7 +76,7 @@ export const login = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: ENV.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: ENV.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -101,7 +101,11 @@ export const logout = async (req, res) => {
       }
     }
 
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: ENV.NODE_ENV === 'production',
+      sameSite: ENV.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
     res.status(200).json({ msg: 'Logged out successfully' });
   } catch (error) {
     res.status(500).json({ msg: 'Server error', error: error.message });

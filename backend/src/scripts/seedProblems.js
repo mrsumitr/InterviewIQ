@@ -20,6 +20,18 @@ const problems = [
       'Only one valid answer exists.',
     ],
     starterCode: 'function twoSum(nums, target) {\n  // write your solution here\n}',
+    functionName: 'twoSum',
+    testCases: [
+      { input: [[2, 7, 11, 15], 9], expected: [0, 1] },
+      { input: [[3, 2, 4], 6], expected: [1, 2] },
+      { input: [[3, 3], 6], expected: [0, 1] },
+      // edge cases
+      { input: [[2, 7], 9], expected: [0, 1] },
+      { input: [[0, 4, 3, 0], 0], expected: [0, 3] },
+      { input: [[-3, 4, 3, 90], 0], expected: [0, 2] },
+      { input: [[1, 2, 3, 4, 6], 10], expected: [3, 4] },
+      { input: [[100, 200, 300, 400, 500], 900], expected: [3, 4] },
+    ],
   },
   {
     title: 'Reverse String',
@@ -33,6 +45,17 @@ const problems = [
     ],
     constraints: ['1 <= s.length <= 10^5'],
     starterCode: 'function reverseString(s) {\n  // write your solution here\n}',
+    functionName: 'reverseString',
+    testCases: [
+      { input: [['h', 'e', 'l', 'l', 'o']], expected: ['o', 'l', 'l', 'e', 'h'] },
+      { input: [['H', 'a', 'n', 'n', 'a', 'h']], expected: ['h', 'a', 'n', 'n', 'a', 'H'] },
+      // edge cases
+      { input: [['a']], expected: ['a'] },
+      { input: [['a', 'b']], expected: ['b', 'a'] },
+      { input: [['r', 'a', 'c', 'e', 'c', 'a', 'r']], expected: ['r', 'a', 'c', 'e', 'c', 'a', 'r'] },
+      { input: [['1', '2', '3', '4']], expected: ['4', '3', '2', '1'] },
+      { input: [['A', 'b', 'C', 'd']], expected: ['d', 'C', 'b', 'A'] },
+    ],
   },
   {
     title: 'Valid Palindrome',
@@ -47,6 +70,18 @@ const problems = [
     ],
     constraints: ['1 <= s.length <= 2 * 10^5'],
     starterCode: 'function isPalindrome(s) {\n  // write your solution here\n}',
+    functionName: 'isPalindrome',
+    testCases: [
+      { input: ['A man, a plan, a canal: Panama'], expected: true },
+      { input: ['race a car'], expected: false },
+      { input: [' '], expected: true },
+      // edge cases
+      { input: [''], expected: true },
+      { input: ['a.'], expected: true },
+      { input: ['0P'], expected: false },
+      { input: ['Was it a car or a cat I saw?'], expected: true },
+      { input: ['No lemon, no melon'], expected: true },
+    ],
   },
   {
     title: 'Maximum Subarray',
@@ -60,6 +95,18 @@ const problems = [
     ],
     constraints: ['1 <= nums.length <= 10^5'],
     starterCode: 'function maxSubArray(nums) {\n  // write your solution here\n}',
+    functionName: 'maxSubArray',
+    testCases: [
+      { input: [[-2, 1, -3, 4, -1, 2, 1, -5, 4]], expected: 6 },
+      { input: [[1]], expected: 1 },
+      { input: [[5, 4, -1, 7, 8]], expected: 23 },
+      // edge cases
+      { input: [[-2, -3, -1, -5]], expected: -1 },
+      { input: [[-100, 1, 2, 3]], expected: 6 },
+      { input: [[-1, 2, -1, 2, -1]], expected: 3 },
+      { input: [[3, 3, 3, 3]], expected: 12 },
+      { input: [[4, 3, 2, 1]], expected: 10 },
+    ],
   },
   {
     title: 'Container With Most Water',
@@ -73,6 +120,18 @@ const problems = [
     ],
     constraints: ['2 <= height.length <= 10^5'],
     starterCode: 'function maxArea(height) {\n  // write your solution here\n}',
+    functionName: 'maxArea',
+    testCases: [
+      { input: [[1, 8, 6, 2, 5, 4, 8, 3, 7]], expected: 49 },
+      { input: [[1, 1]], expected: 1 },
+      { input: [[4, 3, 2, 1, 4]], expected: 16 },
+      // edge cases
+      { input: [[3, 3, 3, 3]], expected: 9 },
+      { input: [[5, 4, 3, 2, 1]], expected: 6 },
+      { input: [[1, 2, 3, 4, 5]], expected: 6 },
+      { input: [[10, 1, 1, 1, 10]], expected: 40 },
+      { input: [[1, 100, 1]], expected: 2 },
+    ],
   },
 ];
 

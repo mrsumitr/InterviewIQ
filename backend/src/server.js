@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.js';
 import livekitRoutes from './routes/livekit.js';
 import interviewRoutes from './routes/interview.js';
 import problemRoutes from './routes/problem.js';
+import codeExecutionRoutes from './routes/codeExecution.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -22,6 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/livekit', livekitRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/problems', problemRoutes);
+app.use('/api/execute', codeExecutionRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ msg: "API is healthy" });

@@ -28,6 +28,11 @@ interface Example {
   explanation?: string;
 }
 
+interface TestCase {
+  input: unknown[];
+  expected: unknown;
+}
+
 interface Problem {
   title: string;
   difficulty: string;
@@ -36,6 +41,8 @@ interface Problem {
   examples: Example[];
   constraints: string[];
   starterCode: string;
+  functionName?: string;
+  testCases?: TestCase[];
 }
 
 interface InterviewData {
@@ -65,7 +72,11 @@ function Room() {
   const [error, setError] = useState<string | null>(null);
 
   const [code, setCode] = useState('');
-  const [output, setOutput] = useState('');
+  const [language, setLanguage] = useState('javascript');
+  const [testResults, setTestResults] = useState<{ index: number; status: string; detail: string }[]>([]);
+  const [testSummary, setTestSummary] = useState<{ passed: number; total: number } | null>(null);
+  const [rawOutput, setRawOutput] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -147,16 +158,64 @@ function Room() {
     }, 1500);
   };
 
-  const runCode = () => {
-    const logs: string[] = [];
-    const customConsole = { log: (...args: unknown[]) => logs.push(args.map(String).join(' ')) };
-    try {
-      const fn = new Function('console', code);
-      fn(customConsole);
-      setOutput(logs.length ? logs.join('\n') : 'Code ran with no output.');
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Runtime error';
-      setOutput(`Error: ${message}`);
+  const runCode = async () => {
+    setTestResults([]);
+    setTestSummary(null);
+    setRawOutput(null);
+
+    if (!interview) return;
+
+    if (language === 'javascript') {
+      const testCases = interview.problem?.testCases;
+      const functionName = interview.problem?.functionName;
+
+      if (!testCases?.length || !functionName) {
+        setTestResults([{ index: 0, status: 'error', detail: 'No test cases available for this problem.' }]);
+        return;
+      }
+
+      try {
+        const fn = new Function(`${code}\n return typeof ${functionName} !== 'undefined' ? ${functionName} : null;`)() as ((...args: unknown[]) => unknown) | null;
+        if (!fn) {
+          setTestResults([{ index: 0, status: 'error', detail: `Function '${functionName}' not found. Make sure you define it.` }]);
+          return;
+        }
+
+        const results: { index: number; status: string; detail: string }[] = [];
+        let passed = 0;
+
+        testCases.forEach((tc, i) => {
+          try {
+            const args = JSON.parse(JSON.stringify(tc.input)) as unknown[];
+            const result = fn(...args);
+            const check = (result === undefined || result === null) ? args[0] : result;
+            const ok = JSON.stringify(check) === JSON.stringify(tc.expected);
+            if (ok) {
+              passed++;
+              results.push({ index: i, status: 'pass', detail: '' });
+            } else {
+              results.push({ index: i, status: 'fail', detail: `expected ${JSON.stringify(tc.expected)} got ${JSON.stringify(check)}` });
+            }
+          } catch (e) {
+            results.push({ index: i, status: 'error', detail: e instanceof Error ? e.message : 'Runtime error' });
+          }
+        });
+
+        setTestResults(results);
+        setTestSummary({ passed, total: testCases.length });
+      } catch (err) {
+        setTestResults([{ index: 0, status: 'error', detail: err instanceof Error ? err.message : 'Syntax error' }]);
+      }
+    } else {
+      setRunning(true);
+      try {
+        const res = await api.post('/execute', { roomId, code, language });
+        setRawOutput(res.data.output || 'No output.');
+      } catch (err) {
+        setRawOutput(err instanceof Error ? err.message : 'Execution failed.');
+      } finally {
+        setRunning(false);
+      }
     }
   };
 
@@ -247,20 +306,58 @@ function Room() {
           <div className="flex-1 min-h-[300px]">
             <MonacoEditor
               height="100%"
-              defaultLanguage="javascript"
+              language={language === 'cpp' ? 'cpp' : language}
               theme="vs-dark"
               value={code}
               onChange={handleCodeChange}
               options={{ fontSize: 14, minimap: { enabled: false } }}
             />
           </div>
-          <div className="border-t border-border p-3 flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Output</span>
-            <Button size="sm" onClick={runCode}>Run Code</Button>
+          <div className="border-t border-border p-3 flex items-center justify-between gap-2">
+            <span className="text-sm text-muted-foreground shrink-0">
+              {testSummary
+                ? `${testSummary.passed}/${testSummary.total} passed`
+                : language !== 'javascript' ? 'Output' : 'Test Results'}
+            </span>
+            <div className="flex items-center gap-2 ml-auto">
+              <select
+                value={language}
+                onChange={(e) => { setLanguage(e.target.value); setTestResults([]); setTestSummary(null); setRawOutput(null); }}
+                className="text-xs bg-muted border border-border rounded px-2 py-1 text-foreground cursor-pointer"
+              >
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+                <option value="cpp">C++</option>
+              </select>
+              <Button size="sm" onClick={runCode} disabled={running}>
+                {running ? 'Running...' : 'Run Code'}
+              </Button>
+            </div>
           </div>
-          <pre className="px-3 pb-3 text-sm font-mono text-muted-foreground whitespace-pre-wrap min-h-[60px] max-h-[120px] overflow-y-auto">
-            {output}
-          </pre>
+          <div className="px-3 pb-3 flex flex-col gap-1 min-h-15 max-h-30 overflow-y-auto">
+            {rawOutput !== null && (
+              <pre className="text-xs font-mono text-muted-foreground whitespace-pre-wrap">{rawOutput}</pre>
+            )}
+            {rawOutput === null && testResults.length === 0 && !running && (
+              <p className="text-xs text-muted-foreground mt-1">Click Run Code to test your solution.</p>
+            )}
+            {running && (
+              <p className="text-xs text-muted-foreground mt-1">Executing...</p>
+            )}
+            {testResults.map((r) => (
+              <div key={r.index} className={`flex items-start gap-2 text-xs rounded px-2 py-1 ${
+                r.status === 'pass' ? 'bg-emerald-400/10 text-emerald-400' :
+                r.status === 'fail' ? 'bg-red-400/10 text-red-400' :
+                'bg-amber-400/10 text-amber-400'
+              }`}>
+                <span className="shrink-0 font-medium">
+                  {r.status === 'pass' ? '✓' : r.status === 'fail' ? '✗' : '!'} Test {r.index + 1}
+                </span>
+                {r.detail && <span className="font-mono truncate">{r.detail}</span>}
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-col">

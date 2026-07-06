@@ -9,6 +9,9 @@
     "seed:problems": "node src/scripts/seedProblems.js"
   },
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

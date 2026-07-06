@@ -33,6 +33,15 @@ const problemSchema = new mongoose.Schema({
     type: String,
     default: 'function solve() {\n  // write your solution here\n}',
   },
+  functionName: {
+    type: String,
+    default: 'solve',
+  },
+  testCases: [{
+    input: { type: mongoose.Schema.Types.Mixed },
+    expected: { type: mongoose.Schema.Types.Mixed },
+    _id: false,
+  }],
 }, { timestamps: true });
 
 export const Problem = mongoose.model('Problem', problemSchema);

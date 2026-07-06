@@ -69,7 +69,7 @@ function Dashboard() {
     api.get('/problems').then((res) => setProblems(res.data.problems));
   }, []);
 
-  const liveSessions = interviews.filter((i) => i.status === 'ongoing');
+  const liveSessions = interviews.filter((i) => i.status === 'ongoing' || i.status === 'scheduled');
   const pastSessions = interviews.filter((i) => i.status === 'completed');
 
   const handleCreateSession = async () => {
@@ -170,7 +170,7 @@ function Dashboard() {
 
         <div className="mt-8">
           <h2 className="font-semibold flex items-center gap-2">
-            Live Sessions {liveSessions.length > 0 && <Badge className="bg-emerald-400 text-zinc-950">{liveSessions.length} active</Badge>}
+            Sessions {liveSessions.length > 0 && <Badge className="bg-emerald-400 text-zinc-950">{liveSessions.length}</Badge>}
           </h2>
           <div className="mt-3 flex flex-col gap-2">
             {liveSessions.length === 0 && (
@@ -184,9 +184,13 @@ function Dashboard() {
                     Host: {interview.interviewers[0]?.name} · {interview.problem?.title || 'No problem selected'}
                   </p>
                 </div>
-                <Button size="sm" onClick={() => router.push(`/room/${interview.roomId}`)}>
-                  Join
-                </Button>
+                <div className="flex items-center gap-2">
+                  {interview.status === 'ongoing' && <Badge className="bg-emerald-400/10 text-emerald-400 border-emerald-400/30">Live</Badge>}
+                  {interview.status === 'scheduled' && <Badge variant="outline">Scheduled</Badge>}
+                  <Button size="sm" onClick={() => router.push(`/room/${interview.roomId}`)}>
+                    Join
+                  </Button>
+                </div>
               </Card>
             ))}
           </div>
