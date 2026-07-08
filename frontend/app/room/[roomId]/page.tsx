@@ -77,6 +77,8 @@ function Room() {
   const [testSummary, setTestSummary] = useState<{ passed: number; total: number } | null>(null);
   const [rawOutput, setRawOutput] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
+  const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -232,6 +234,25 @@ function Room() {
     setChatInput('');
   };
 
+  const getAIFeedback = async () => {
+    if (!code.trim()) return;
+    setAiFeedback(null);
+    setAiFeedbackLoading(true);
+    try {
+      const res = await api.post('/ai/feedback', {
+        code,
+        language,
+        problemTitle: interview?.problem?.title,
+        problemDescription: interview?.problem?.description,
+      });
+      setAiFeedback(res.data.feedback);
+    } catch {
+      setAiFeedback('Failed to get AI feedback. Please try again.');
+    } finally {
+      setAiFeedbackLoading(false);
+    }
+  };
+
   const handleDisconnect = () => {
     router.push('/dashboard');
   };
@@ -333,6 +354,9 @@ function Room() {
               <Button size="sm" onClick={runCode} disabled={running}>
                 {running ? 'Running...' : 'Run Code'}
               </Button>
+              <Button size="sm" variant="outline" onClick={getAIFeedback} disabled={aiFeedbackLoading || !code.trim()}>
+                {aiFeedbackLoading ? 'Analyzing...' : 'AI Review'}
+              </Button>
             </div>
           </div>
           <div className="px-3 pb-3 flex flex-col gap-1 min-h-15 max-h-30 overflow-y-auto">
@@ -357,6 +381,15 @@ function Room() {
                 {r.detail && <span className="font-mono truncate">{r.detail}</span>}
               </div>
             ))}
+            {aiFeedbackLoading && (
+              <p className="text-xs text-muted-foreground mt-1 italic">AI is reviewing your code...</p>
+            )}
+            {aiFeedback && (
+              <div className="mt-2 rounded-lg border border-emerald-400/30 bg-emerald-400/5 p-3">
+                <p className="text-xs font-semibold text-emerald-400 mb-1.5">AI Code Review</p>
+                <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-sans leading-relaxed">{aiFeedback}</pre>
+              </div>
+            )}
           </div>
         </div>
 

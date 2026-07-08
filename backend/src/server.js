@@ -10,6 +10,7 @@ import livekitRoutes from './routes/livekit.js';
 import interviewRoutes from './routes/interview.js';
 import problemRoutes from './routes/problem.js';
 import codeExecutionRoutes from './routes/codeExecution.js';
+import aiFeedbackRoutes from './routes/aiFeedback.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -24,6 +25,7 @@ app.use('/api/livekit', livekitRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/problems', problemRoutes);
 app.use('/api/execute', codeExecutionRoutes);
+app.use('/api/ai/feedback', aiFeedbackRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ msg: "API is healthy" });

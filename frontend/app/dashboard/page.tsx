@@ -44,8 +44,13 @@ interface Interview {
 }
 
 function Dashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,8 +113,11 @@ function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Welcome back, {user?.name}!</h1>
-            <p className="text-muted-foreground mt-1">Ready to level up your coding skills?</p>
+            <p className="text-muted-foreground mt-1">
+              {user?.role === 'interviewer' ? 'Manage your interview sessions.' : 'Ready to level up your coding skills?'}
+            </p>
           </div>
+          <div className="flex items-center gap-2">
           {user?.role === 'interviewer' && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger render={<Button>+ Create Session</Button>} />
@@ -155,6 +163,8 @@ function Dashboard() {
               </DialogContent>
             </Dialog>
           )}
+          <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
+          </div>
         </div>
 
         <div className="mt-8 grid sm:grid-cols-2 gap-4">
