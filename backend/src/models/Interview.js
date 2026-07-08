@@ -47,6 +47,14 @@ const interviewSchema = new mongoose.Schema({
     enum: ['scheduled', 'ongoing', 'completed', 'cancelled'],
     default: 'scheduled',
   },
+  isLocked: {
+    type: Boolean,
+    default: false,
+  },
+  aiFeedback: {
+    type: String,
+    default: '',
+  },
   notes: {
     type: String,
     default: '',

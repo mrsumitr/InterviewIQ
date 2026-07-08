@@ -21,6 +21,13 @@ export const generateToken = async (req, res) => {
     if (!isParticipant)
       return res.status(403).json({ msg: 'You are not part of this interview' });
 
+    if (interview.status === 'completed')
+      return res.status(403).json({ msg: 'This session has already ended.' });
+
+    const isInterviewer = interview.interviewers.some((id) => id.toString() === participantName);
+    if (interview.isLocked && !isInterviewer)
+      return res.status(403).json({ msg: 'This session is locked. You cannot join right now.' });
+
     const user = await User.findById(participantName).select('name');
 
     const token = new AccessToken(ENV.LIVEKIT_API_KEY, ENV.LIVEKIT_API_SECRET, {

@@ -6,6 +6,8 @@ import {
   updateInterviewCode,
   startInterview,
   endInterview,
+  lockInterview,
+  saveInterviewerFeedback,
 } from '../controllers/interview.js';
 import { protect } from '../middleware/auth.js';
 
@@ -17,5 +19,7 @@ router.get('/:roomId', protect, getInterviewByRoomId);
 router.patch('/:roomId/code', protect, updateInterviewCode);
 router.patch('/:roomId/start', protect, startInterview);
 router.patch('/:roomId/end', protect, endInterview);
+router.patch('/:roomId/lock', protect, lockInterview);
+router.patch('/:roomId/feedback', protect, saveInterviewerFeedback);
 
 export default router;

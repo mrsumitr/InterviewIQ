@@ -112,6 +112,20 @@ export const logout = async (req, res) => {
   }
 };
 
+export const switchRole = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    user.role = user.role === 'interviewer' ? 'interviewee' : 'interviewer';
+    await user.save();
+
+    res.status(200).json({ role: user.role });
+  } catch (error) {
+    res.status(500).json({ msg: 'Server error', error: error.message });
+  }
+};
+
 export const lookupUserByEmail = async (req, res) => {
   try {
     const { email } = req.query;

@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import { getSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,16 +43,14 @@ interface Interview {
   interviewers: { _id: string; name: string }[];
   interviewee: { _id: string; name: string };
   problem?: { title: string };
+  feedback?: { rating?: number; comment?: string };
+  aiFeedback?: string;
 }
 
 function Dashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
 
-  const handleLogout = async () => {
-    await logout();
-    router.push('/login');
-  };
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +61,8 @@ function Dashboard() {
   const [problemId, setProblemId] = useState('');
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
+  const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchInterviews = () => {
     api.get('/interviews').then((res) => {
@@ -74,8 +76,37 @@ function Dashboard() {
     api.get('/problems').then((res) => setProblems(res.data.problems));
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    const socket = getSocket();
+    socket.connect();
+
+    socket.on('session:invite', (data: { title: string; roomId: string; interviewerName: string }) => {
+      fetchInterviews();
+      toast.info(`New interview session scheduled`, {
+        description: `${data.interviewerName} invited you to "${data.title}"`,
+        action: {
+          label: 'Join',
+          onClick: () => router.push(`/room/${data.roomId}`),
+        },
+        duration: 10000,
+      });
+    });
+
+    socket.on('interview:ended', () => {
+      fetchInterviews();
+    });
+
+    return () => {
+      socket.off('session:invite');
+      socket.off('interview:ended');
+      socket.disconnect();
+    };
+  }, [user]);
+
   const liveSessions = interviews.filter((i) => i.status === 'ongoing' || i.status === 'scheduled');
-  const pastSessions = interviews.filter((i) => i.status === 'completed');
+  const pastSessions = interviews.filter((i) => i.status === 'completed').slice(0, 25);
+  const selectedProblem = problems.find((p) => p._id === problemId);
 
   const handleCreateSession = async () => {
     setError('');
@@ -84,17 +115,14 @@ function Dashboard() {
       const userRes = await api.get(`/auth/users/lookup?email=${encodeURIComponent(intervieweeEmail)}`);
       const interviewee = userRes.data.user;
 
-      await api.post('/interviews', {
+      const res = await api.post('/interviews', {
         title,
         intervieweeId: interviewee._id ?? interviewee.id,
         problemId: problemId || undefined,
         scheduledAt: new Date().toISOString(),
       });
 
-      setOpen(false);
-      setTitle('');
-      setIntervieweeEmail('');
-      setProblemId('');
+      setCreatedRoomId(res.data.interview.roomId);
       fetchInterviews();
     } catch (err: unknown) {
       const message =
@@ -105,6 +133,29 @@ function Dashboard() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const copyLink = (roomId: string) => {
+    const link = `${window.location.origin}/room/${roomId}`;
+    navigator.clipboard.writeText(link);
+    setCopiedId(roomId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleDialogClose = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setTitle('');
+      setIntervieweeEmail('');
+      setProblemId('');
+      setError('');
+      setCreatedRoomId(null);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
   };
 
   return (
@@ -118,52 +169,92 @@ function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-          {user?.role === 'interviewer' && (
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger render={<Button>+ Create Session</Button>} />
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Session</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col gap-4 py-2">
-                  {error && <p className="text-sm text-destructive">{error}</p>}
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="title">Session Title</Label>
-                    <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Frontend Round 1" />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="intervieweeEmail">Interviewee Email</Label>
-                    <Input
-                      id="intervieweeEmail"
-                      type="email"
-                      value={intervieweeEmail}
-                      onChange={(e) => setIntervieweeEmail(e.target.value)}
-                      placeholder="candidate@example.com"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label>Select Problem</Label>
-                    <Select value={problemId} onValueChange={(value) => value && setProblemId(value)}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a problem" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {problems.map((p) => (
-                          <SelectItem key={p._id} value={p._id}>{p.title} ({p.difficulty})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={handleCreateSession} disabled={creating || !title || !intervieweeEmail} className="w-full">
-                    {creating ? 'Creating...' : 'Create Room'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-          <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
+            {user?.role === 'interviewer' && (
+              <Dialog open={open} onOpenChange={handleDialogClose}>
+                <DialogTrigger render={<Button>+ Create Session</Button>} />
+                <DialogContent>
+                  {createdRoomId ? (
+                    <>
+                      <DialogHeader>
+                        <DialogTitle>Session Created!</DialogTitle>
+                      </DialogHeader>
+                      <div className="flex flex-col gap-4 py-2">
+                        <p className="text-sm text-muted-foreground">Share this link with your interviewee and co-interviewers to join the session.</p>
+                        <div className="flex flex-col gap-2">
+                          <Label>Invite Link</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              readOnly
+                              value={`${window.location.origin}/room/${createdRoomId}`}
+                              className="font-mono text-xs"
+                            />
+                            <Button
+                              variant="outline"
+                              onClick={() => copyLink(createdRoomId)}
+                              className="shrink-0"
+                            >
+                              {copiedId === createdRoomId ? 'Copied!' : 'Copy'}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => handleDialogClose(false)} className="w-full">
+                          Done
+                        </Button>
+                        <Button onClick={() => router.push(`/room/${createdRoomId}`)} className="w-full">
+                          Join Now
+                        </Button>
+                      </DialogFooter>
+                    </>
+                  ) : (
+                    <>
+                      <DialogHeader>
+                        <DialogTitle>Create New Session</DialogTitle>
+                      </DialogHeader>
+                      <div className="flex flex-col gap-4 py-2">
+                        {error && <p className="text-sm text-destructive">{error}</p>}
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="title">Session Title</Label>
+                          <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Frontend Round 1" />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="intervieweeEmail">Interviewee Email</Label>
+                          <Input
+                            id="intervieweeEmail"
+                            type="email"
+                            value={intervieweeEmail}
+                            onChange={(e) => setIntervieweeEmail(e.target.value)}
+                            placeholder="candidate@example.com"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label>Select Problem</Label>
+                          <Select value={problemId} onValueChange={(value) => value && setProblemId(value)}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select a problem">
+                                {selectedProblem ? `${selectedProblem.title} (${selectedProblem.difficulty})` : null}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {problems.map((p) => (
+                                <SelectItem key={p._id} value={p._id}>{p.title} ({p.difficulty})</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleCreateSession} disabled={creating || !title || !intervieweeEmail} className="w-full">
+                          {creating ? 'Creating...' : 'Create Room'}
+                        </Button>
+                      </DialogFooter>
+                    </>
+                  )}
+                </DialogContent>
+              </Dialog>
+            )}
+            <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
           </div>
         </div>
 
@@ -197,6 +288,9 @@ function Dashboard() {
                 <div className="flex items-center gap-2">
                   {interview.status === 'ongoing' && <Badge className="bg-emerald-400/10 text-emerald-400 border-emerald-400/30">Live</Badge>}
                   {interview.status === 'scheduled' && <Badge variant="outline">Scheduled</Badge>}
+                  <Button size="sm" variant="outline" onClick={() => copyLink(interview.roomId)}>
+                    {copiedId === interview.roomId ? 'Copied!' : 'Copy Link'}
+                  </Button>
                   <Button size="sm" onClick={() => router.push(`/room/${interview.roomId}`)}>
                     Join
                   </Button>
@@ -213,14 +307,35 @@ function Dashboard() {
               <p className="text-sm text-muted-foreground">No past sessions yet.</p>
             )}
             {pastSessions.map((interview) => (
-              <Card key={interview._id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{interview.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {interview.problem?.title || 'No problem'} · {new Date(interview.scheduledAt).toLocaleDateString()}
-                  </p>
+              <Card key={interview._id} className="p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{interview.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {interview.problem?.title || 'No problem'} · {new Date(interview.scheduledAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Badge variant="outline">Completed</Badge>
                 </div>
-                <Badge variant="outline">Completed</Badge>
+                {interview.feedback?.rating && (
+                  <div className="flex flex-col gap-1 border-t border-border pt-3">
+                    <p className="text-xs font-medium">Interviewer Feedback</p>
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map((s) => (
+                        <span key={s} className={`text-sm ${s <= (interview.feedback?.rating ?? 0) ? 'text-amber-400' : 'text-muted-foreground/30'}`}>★</span>
+                      ))}
+                    </div>
+                    {interview.feedback.comment && (
+                      <p className="text-xs text-muted-foreground">{interview.feedback.comment}</p>
+                    )}
+                  </div>
+                )}
+                {interview.aiFeedback && (
+                  <div className="border-t border-border pt-3">
+                    <p className="text-xs font-medium text-emerald-400 mb-1">AI Code Review</p>
+                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-sans leading-relaxed line-clamp-4">{interview.aiFeedback}</pre>
+                  </div>
+                )}
               </Card>
             ))}
           </div>

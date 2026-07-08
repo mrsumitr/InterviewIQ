@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { Zap, Send } from 'lucide-react';
+import { Zap, Send, Lock, LockOpen } from 'lucide-react';
 import VideoCall from '@/components/VideoCall';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
@@ -13,6 +13,7 @@ import { getSocket } from '@/lib/socket';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
@@ -50,6 +51,7 @@ interface InterviewData {
   status: string;
   problem: Problem | null;
   code: string;
+  isLocked: boolean;
   interviewers: { _id: string; name: string }[];
   interviewee: { _id: string; name: string };
 }
@@ -79,6 +81,10 @@ function Room() {
   const [running, setRunning] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState('');
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -91,8 +97,13 @@ function Room() {
 
     api.get(`/interviews/${roomId}`).then((res) => {
       const data: InterviewData = res.data.interview;
+      if (data.status === 'completed') {
+        router.replace('/dashboard');
+        return;
+      }
       setInterview(data);
       setCode(data.code || data.problem?.starterCode || '');
+      setIsLocked(data.isLocked ?? false);
     });
 
     const fetchToken = async () => {
@@ -136,9 +147,14 @@ function Room() {
       setMessages((prev) => [...prev, msg]);
     });
 
+    socket.on('interview:ended', () => {
+      router.push('/dashboard');
+    });
+
     return () => {
       socket.off('code-change');
       socket.off('chat-message');
+      socket.off('interview:ended');
       socket.disconnect();
     };
   }, [roomId, user]);
@@ -242,6 +258,7 @@ function Room() {
       const res = await api.post('/ai/feedback', {
         code,
         language,
+        roomId,
         problemTitle: interview?.problem?.title,
         problemDescription: interview?.problem?.description,
       });
@@ -253,11 +270,26 @@ function Room() {
     }
   };
 
+  const toggleLock = async () => {
+    const res = await api.patch(`/interviews/${roomId}/lock`);
+    setIsLocked(res.data.isLocked);
+  };
+
   const handleDisconnect = () => {
     router.push('/dashboard');
   };
 
-  const handleEndInterview = async () => {
+  const handleEndInterview = () => {
+    setShowFeedbackDialog(true);
+  };
+
+  const submitFeedbackAndEnd = async () => {
+    if (feedbackRating > 0) {
+      await api.patch(`/interviews/${roomId}/feedback`, {
+        rating: feedbackRating,
+        comment: feedbackComment,
+      }).catch(() => {});
+    }
     try {
       await api.patch(`/interviews/${roomId}/end`);
     } finally {
@@ -281,7 +313,18 @@ function Room() {
           </div>
           <span className="font-semibold text-sm tracking-tight">InterviewIQ</span>
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {user?.role === 'interviewer' && (
+            <Button
+              size="sm"
+              variant={isLocked ? 'destructive' : 'outline'}
+              onClick={toggleLock}
+              className="flex items-center gap-1.5"
+            >
+              {isLocked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+              {isLocked ? 'Locked' : 'Lock Session'}
+            </Button>
+          )}
           <Link href="/problems" className="text-sm text-muted-foreground hover:text-foreground">Problems</Link>
           <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">Dashboard</Link>
         </div>
@@ -324,7 +367,7 @@ function Room() {
         </div>
 
         <div className="flex flex-col border-r border-border">
-          <div className="flex-1 min-h-[300px]">
+          <div className="flex-1 min-h-75">
             <MonacoEditor
               height="100%"
               language={language === 'cpp' ? 'cpp' : language}
@@ -425,6 +468,49 @@ function Room() {
           </div>
         </div>
       </div>
+
+      {showFeedbackDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-background border border-border rounded-xl p-6 w-full max-w-md flex flex-col gap-4 shadow-xl">
+            <h2 className="text-lg font-semibold">End Interview</h2>
+            <p className="text-sm text-muted-foreground">Optionally leave feedback for the candidate before ending.</p>
+
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium">Rating</p>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setFeedbackRating(star)}
+                    className={`text-2xl transition-colors ${star <= feedbackRating ? 'text-amber-400' : 'text-muted-foreground/30'}`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium">Comments</p>
+              <Textarea
+                placeholder="How did the candidate perform? Any notes..."
+                value={feedbackComment}
+                onChange={(e) => setFeedbackComment(e.target.value)}
+                className="resize-none h-24"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => submitFeedbackAndEnd()}>
+                Skip & End
+              </Button>
+              <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white" onClick={() => submitFeedbackAndEnd()}>
+                Submit & End
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

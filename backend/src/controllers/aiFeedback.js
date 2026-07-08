@@ -34,6 +34,11 @@ Keep each section to 1-2 sentences. Be direct and constructive. Do not add any i
     const result = await model.generateContent(prompt);
     const feedback = result.response.text();
 
+    if (req.body.roomId) {
+      const { Interview } = await import('../models/Interview.js');
+      await Interview.findOneAndUpdate({ roomId: req.body.roomId }, { aiFeedback: feedback });
+    }
+
     res.status(200).json({ feedback });
   } catch (error) {
     res.status(500).json({ msg: 'AI feedback failed', error: error.message });

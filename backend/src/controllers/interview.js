@@ -1,7 +1,9 @@
 import crypto from 'crypto';
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { Interview } from '../models/Interview.js';
+import { User } from '../models/User.js';
 import { ENV } from '../lib/env.js';
+import { getIO } from '../lib/socket.js';
 
 const roomService = new RoomServiceClient(ENV.LIVEKIT_URL, ENV.LIVEKIT_API_KEY, ENV.LIVEKIT_API_SECRET);
 
@@ -22,6 +24,17 @@ export const createInterview = async (req, res) => {
       problem: problemId || null,
       roomId: crypto.randomUUID(),
     });
+
+    const interviewer = await User.findById(req.userId).select('name');
+    const io = getIO();
+    if (io) {
+      io.to(`user:${intervieweeId}`).emit('session:invite', {
+        title: interview.title,
+        roomId: interview.roomId,
+        scheduledAt: interview.scheduledAt,
+        interviewerName: interviewer?.name || 'An interviewer',
+      });
+    }
 
     res.status(201).json({ msg: 'Interview scheduled', interview });
   } catch (error) {
@@ -101,6 +114,43 @@ export const startInterview = async (req, res) => {
   }
 };
 
+export const saveInterviewerFeedback = async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    const interview = await Interview.findOne({ roomId: req.params.roomId });
+    if (!interview) return res.status(404).json({ msg: 'Interview not found' });
+
+    const isInterviewer = interview.interviewers.some((id) => id.toString() === req.userId);
+    if (!isInterviewer)
+      return res.status(403).json({ msg: 'Only interviewers can submit feedback' });
+
+    interview.feedback = { rating, comment };
+    await interview.save();
+
+    res.status(200).json({ msg: 'Feedback saved' });
+  } catch (error) {
+    res.status(500).json({ msg: 'Server error', error: error.message });
+  }
+};
+
+export const lockInterview = async (req, res) => {
+  try {
+    const interview = await Interview.findOne({ roomId: req.params.roomId });
+    if (!interview) return res.status(404).json({ msg: 'Interview not found' });
+
+    const isInterviewer = interview.interviewers.some((id) => id.toString() === req.userId);
+    if (!isInterviewer)
+      return res.status(403).json({ msg: 'Only an interviewer can lock the session' });
+
+    interview.isLocked = !interview.isLocked;
+    await interview.save();
+
+    res.status(200).json({ isLocked: interview.isLocked });
+  } catch (error) {
+    res.status(500).json({ msg: 'Server error', error: error.message });
+  }
+};
+
 export const endInterview = async (req, res) => {
   try {
     const interview = await Interview.findOne({ roomId: req.params.roomId });
@@ -118,6 +168,13 @@ export const endInterview = async (req, res) => {
       await roomService.deleteRoom(interview.roomId);
     } catch {
       // room may already be empty/closed, ignore
+    }
+
+    const io = getIO();
+    if (io) {
+      io.to(interview.roomId).emit('interview:ended');
+      interview.interviewers.forEach((id) => io.to(`user:${id}`).emit('interview:ended'));
+      io.to(`user:${interview.interviewee}`).emit('interview:ended');
     }
 
     res.status(200).json({ interview });

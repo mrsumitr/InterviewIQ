@@ -48,7 +48,7 @@ export default function VideoCall({
       <div className="flex-1 min-h-0">
         <CompactConference />
       </div>
-      <ControlBar variation="minimal" controls={{ screenShare: false, chat: false }} />
+      <ControlBar variation="minimal" controls={{ screenShare: false, chat: false, leave: !isInterviewer }} />
       <RoomAudioRenderer />
       {isInterviewer && (
         <button

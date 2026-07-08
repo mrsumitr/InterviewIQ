@@ -2,8 +2,12 @@ import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { ENV } from './env.js';
 
+let io;
+
+export const getIO = () => io;
+
 export const initSocket = (httpServer) => {
-  const io = new Server(httpServer, {
+  io = new Server(httpServer, {
     cors: { origin: ENV.CLIENT_URL, credentials: true },
   });
 
@@ -21,6 +25,9 @@ export const initSocket = (httpServer) => {
   });
 
   io.on('connection', (socket) => {
+    // Each user gets a personal room for targeted notifications
+    socket.join(`user:${socket.userId}`);
+
     socket.on('join-room', (roomId) => {
       socket.join(roomId);
     });
